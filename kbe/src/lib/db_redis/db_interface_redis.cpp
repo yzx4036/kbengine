@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 
 #include "redis_helper.h"
@@ -140,7 +122,7 @@ bool DBInterfaceRedis::attach(const char* databaseName)
 	redisReply* pRedisReply = NULL;
 	
 	// ÃÜÂëÑéÖ¤
-	if(!ping())
+	if(!ping(c))
 	{
 		pRedisReply = (redisReply*)redisCommand(c, fmt::format("auth {}", db_password_).c_str());  
 		
@@ -271,7 +253,7 @@ bool DBInterfaceRedis::query(const std::string& cmd, redisReply** pRedisReply, b
 			(*pRedisReply) = NULL;
 		}
 
-		this->throwError();
+		this->throwError(NULL);
 		return false;
 	}
 
@@ -304,7 +286,7 @@ bool DBInterfaceRedis::query(const char* cmd, uint32 size, bool printlog, Memory
 		if(pRedisReply)
 			freeReplyObject(pRedisReply); 
 		
-		this->throwError();
+		this->throwError(NULL);
 		return false;
 	}  
 
@@ -351,7 +333,7 @@ bool DBInterfaceRedis::query(bool printlog, const char* format, ...)
 
 		va_end(ap);
 		
-		this->throwError();
+		this->throwError(NULL);
 		return false;
 	}
 
@@ -397,7 +379,7 @@ bool DBInterfaceRedis::queryAppend(bool printlog, const char* format, ...)
 
 		va_end(ap);
 		
-		this->throwError();
+		this->throwError(NULL);
 		return false;
 	}  
 
@@ -494,11 +476,11 @@ void DBInterfaceRedis::write_query_result_element(redisReply* pRedisReply, Memor
 //-------------------------------------------------------------------------------------
 const char* DBInterfaceRedis::c_str()
 {
-	static char strdescr[MAX_BUF];
-	kbe_snprintf(strdescr, MAX_BUF, "interface=%s, dbtype=redis, ip=%s, port=%u, currdatabase=%s, username=%s, connected=%s.\n", 
-		name_, db_ip_, db_port_, db_name_, db_username_, pRedisContext_ == NULL ? "no" : "yes");
+	static std::string strdescr;
+	strdescr = fmt::format("interface={}, dbtype=redis, ip={}, port={}, currdatabase={}, username={}, connected={}.\n",
+		name_, db_ip_, db_port_, db_name_, db_username_, (pRedisContext_ == NULL ? "no" : "yes"));
 
-	return strdescr;
+	return strdescr.c_str();
 }
 
 //-------------------------------------------------------------------------------------
@@ -558,16 +540,23 @@ bool DBInterfaceRedis::unlock()
 }
 
 //-------------------------------------------------------------------------------------
-void DBInterfaceRedis::throwError()
+void DBInterfaceRedis::throwError(DBException* pDBException)
 {
-	DBException e( this );
-
-	if (e.isLostConnection())
+	if (pDBException)
 	{
-		this->hasLostConnection(true);
+		throw *pDBException;
 	}
+	else
+	{
+		DBException e(this);
 
-	throw e;
+		if (e.isLostConnection())
+		{
+			this->hasLostConnection(true);
+		}
+
+		throw e;
+	}
 }
 
 //-------------------------------------------------------------------------------------

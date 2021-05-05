@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 #include "network/event_dispatcher.h"
 #include "network/event_poller.h"
@@ -62,9 +44,9 @@ PyObject* PyFileDescriptor::__py_registerReadFileDescriptor(PyObject* self, PyOb
 	PyObject* pycallback = NULL;
 	int fd = 0;
 
-	if(PyArg_ParseTuple(args, "i|O", &fd, &pycallback) == -1)
+	if(!PyArg_ParseTuple(args, "i|O", &fd, &pycallback))
 	{
-		PyErr_Format(PyExc_TypeError, "KBEngine::registerReadFileDescriptor: args is error!");
+		PyErr_Format(PyExc_TypeError, "KBEngine::registerReadFileDescriptor: args error!");
 		PyErr_PrintEx(0);
 		return NULL;
 	}
@@ -99,9 +81,9 @@ PyObject* PyFileDescriptor::__py_deregisterReadFileDescriptor(PyObject* self, Py
 
 	int fd = 0;
 
-	if(PyArg_ParseTuple(args, "i", &fd) == -1)
+	if(!PyArg_ParseTuple(args, "i", &fd))
 	{
-		PyErr_Format(PyExc_TypeError, "KBEngine::deregisterReadFileDescriptor: args is error!");
+		PyErr_Format(PyExc_TypeError, "KBEngine::deregisterReadFileDescriptor: args error!");
 		PyErr_PrintEx(0);
 		return NULL;
 	}
@@ -135,9 +117,9 @@ PyObject* PyFileDescriptor::__py_registerWriteFileDescriptor(PyObject* self, PyO
 	PyObject* pycallback = NULL;
 	int fd = 0;
 
-	if(PyArg_ParseTuple(args, "i|O", &fd, &pycallback) == -1)
+	if(!PyArg_ParseTuple(args, "i|O", &fd, &pycallback))
 	{
-		PyErr_Format(PyExc_TypeError, "KBEngine::registerWriteFileDescriptor: args is error!");
+		PyErr_Format(PyExc_TypeError, "KBEngine::registerWriteFileDescriptor: args error!");
 		PyErr_PrintEx(0);
 		return NULL;
 	}
@@ -172,9 +154,9 @@ PyObject* PyFileDescriptor::__py_deregisterWriteFileDescriptor(PyObject* self, P
 
 	int fd = 0;
 
-	if(PyArg_ParseTuple(args, "i", &fd) == -1)
+	if(!PyArg_ParseTuple(args, "i", &fd))
 	{
-		PyErr_Format(PyExc_TypeError, "KBEngine::deregisterWriteFileDescriptor: args is error!");
+		PyErr_Format(PyExc_TypeError, "KBEngine::deregisterWriteFileDescriptor: args error!");
 		PyErr_PrintEx(0);
 		return NULL;
 	}
@@ -231,7 +213,7 @@ void PyFileDescriptor::callback()
 	}
 	else
 	{
-		ERROR_MSG(fmt::format("PyFileDescriptor::callback: can't found callback:{}.\n", fd_));
+		ERROR_MSG(fmt::format("PyFileDescriptor::callback: not found callback:{}.\n", fd_));
 	}
 }
 

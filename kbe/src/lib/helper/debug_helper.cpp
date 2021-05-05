@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 
 #include "debug_helper.h"
@@ -32,7 +14,7 @@ along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
 #include "network/tcp_packet.h"
 #include "server/serverconfig.h"
 
-#ifdef unix
+#if KBE_PLATFORM == PLATFORM_UNIX
 #include <unistd.h>
 #include <syslog.h>
 #endif
@@ -117,7 +99,17 @@ log4cxx::LoggerPtr g_logger(log4cxx::Logger::getLogger(""));
 			printf("IOException: %s\nFATAL=%s\n", ioex.what(), s.c_str());	\
 		}	\
     }
-    
+
+#define KBE_LOG4CXX_PRINT(logger, s) { \
+		try {	\
+			   ::log4cxx::helpers::MessageBuffer oss_; \
+			   logger->forcedLog(::log4cxx::Level::getOff(), oss_.str(oss_ << s), LOG4CXX_LOCATION); \
+		}	\
+		catch (const log4cxx::helpers::IOException& ioex) {	\
+			printf("IOException: %s\nLOG=%s\n", ioex.what(), s.c_str());	\
+		}	\
+	}
+
 #define KBE_LOG4CXX_LOG(logger, level, s)	\
 	{	\
 		try {	\
@@ -127,7 +119,8 @@ log4cxx::LoggerPtr g_logger(log4cxx::Logger::getLogger(""));
 			printf("IOException: %s\nLOG=%s\n", ioex.what(), s.c_str());	\
 		}	\
     }
-    
+
+
 #endif
 
 #define DBG_PT_SIZE 1024 * 4
@@ -155,9 +148,9 @@ void myassert(const char * exp, const char * func, const char * file, unsigned i
 																\
 		char* ccattr = strutil::wchar2char(exe_path);			\
 		if(CHANGED)												\
-			printf("Logging(changed) to: %s/logs/"NAME"%s.*.log\n\n", ccattr, COMPONENT_NAME_EX(g_componentType));\
+			printf("Logging(changed) to: %s/logs/" NAME "%s.*.log\n\n", ccattr, COMPONENT_NAME_EX(g_componentType));\
 		else													\
-			printf("Logging to: %s/logs/"NAME"%s.*.log\n\n", ccattr, COMPONENT_NAME_EX(g_componentType));\
+			printf("Logging to: %s/logs/" NAME "%s.*.log\n\n", ccattr, COMPONENT_NAME_EX(g_componentType));\
 		free(ccattr);											\
 	}															\
 
@@ -253,6 +246,7 @@ pDispatcher_(NULL),
 scriptMsgType_(log4cxx::ScriptLevel::SCRIPT_INT),
 noSyncLog_(false),
 canLogFile_(true),
+loseLoggerTime_(timestamp()),
 
 #if KBE_PLATFORM == PLATFORM_WIN32
 mainThreadID_(GetCurrentThreadId()),
@@ -262,6 +256,7 @@ mainThreadID_(pthread_self()),
 memoryStreamPool_("DebugHelperMemoryStream")
 {
 	g_pDebugHelperSyncHandler = new DebugHelperSyncHandler();
+	loseLoggerTime_ = timestamp();
 }
 
 //-------------------------------------------------------------------------------------
@@ -305,6 +300,61 @@ void DebugHelper::changeLogger(const std::string& name)
 }
 
 //-------------------------------------------------------------------------------------
+bool DebugHelper::canLog(int level)
+{
+#ifndef NO_USE_LOG4CXX
+	if (!g_logger->getLevel())
+		return true;
+
+	int log4level = 0;
+
+	switch (level)
+	{
+	case KBELOG_PRINT:
+		log4level = log4cxx::Level::TRACE_INT;
+		break;
+	case KBELOG_ERROR:
+		log4level = log4cxx::Level::ERROR_INT;
+		break;
+	case KBELOG_WARNING:
+		log4level = log4cxx::Level::WARN_INT;
+		break;
+	case KBELOG_DEBUG:
+		log4level = log4cxx::Level::DEBUG_INT;
+		break;
+	case KBELOG_INFO:
+		log4level = log4cxx::Level::INFO_INT;
+		break;
+	case KBELOG_CRITICAL:
+		log4level = log4cxx::Level::FATAL_INT;
+		break;
+	case KBELOG_SCRIPT_INFO:
+		log4level = log4cxx::Level::INFO_INT;
+		break;
+	case KBELOG_SCRIPT_ERROR:
+		log4level = log4cxx::Level::ERROR_INT;
+		break;
+	case KBELOG_SCRIPT_DEBUG:
+		log4level = log4cxx::Level::DEBUG_INT;
+		break;
+	case KBELOG_SCRIPT_WARNING:
+		log4level = log4cxx::Level::WARN_INT;
+		break;
+	case KBELOG_SCRIPT_NORMAL:
+		log4level = log4cxx::Level::TRACE_INT;
+		break;
+	default:
+		log4level = log4cxx::Level::ALL_INT;
+		break;
+	};
+
+	return log4level >= g_logger->getLevel()->toInt();
+#else
+	return true;
+#endif
+}
+
+//-------------------------------------------------------------------------------------
 void DebugHelper::lockthread()
 {
 	logMutex.lockMutex();
@@ -340,7 +390,7 @@ void DebugHelper::initialize(COMPONENT_TYPE componentType)
 			FILE * f = fopen(kbengine_xml_path.c_str(), "r");
 			if (f == NULL)
 			{
-				kbe_snprintf(helpConfig, MAX_PATH, "server/log4cxx_properties/%s.properties", COMPONENT_NAME_EX(componentType));
+				kbe_snprintf(helpConfig, MAX_PATH, "server/log4cxx_properties_defaults/%s.properties", COMPONENT_NAME_EX(componentType));
 				cfg = Resmgr::getSingleton().matchRes(helpConfig);
 			}
 			else
@@ -351,7 +401,7 @@ void DebugHelper::initialize(COMPONENT_TYPE componentType)
 		}
 		else
 		{
-			kbe_snprintf(helpConfig, MAX_PATH, "server/log4cxx_properties/%s.properties", COMPONENT_NAME_EX(componentType));
+			kbe_snprintf(helpConfig, MAX_PATH, "server/log4cxx_properties_defaults/%s.properties", COMPONENT_NAME_EX(componentType));
 			cfg = Resmgr::getSingleton().matchRes(helpConfig);
 		}
 
@@ -462,7 +512,7 @@ void DebugHelper::sync()
 		MemoryStream* pMemoryStream = childThreadBufferedLogPackets_.front();
 		childThreadBufferedLogPackets_.pop();
 
-		Network::Bundle* pBundle = Network::Bundle::createPoolObject();
+		Network::Bundle* pBundle = Network::Bundle::createPoolObject(OBJECTPOOL_POINT);
 		bufferedLogPackets_.push(pBundle);
 
 		pBundle->newMessage(LoggerInterface::writeLog);
@@ -477,20 +527,28 @@ void DebugHelper::sync()
 		memoryStreamPool_.reclaimObject(pMemoryStream);
 	}
 
-	if(Network::Address::NONE == loggerAddr_)
+	if (Network::Address::NONE == loggerAddr_)
 	{
-		if(g_kbeSrvConfig.tickMaxBufferedLogs() > 0)
+		// 如果超过300秒没有找到logger，那么强制清理内存
+		if (timestamp() - loseLoggerTime_ > uint64(300 * stampsPerSecond()))
 		{
-			if(hasBufferedLogPackets_ > g_kbeSrvConfig.tickMaxBufferedLogs())
-			{
-				clearBufferedLog();
-			}
+			clearBufferedLog();
 		}
 		else
 		{
-			if(hasBufferedLogPackets_ > 256)
+			if (g_kbeSrvConfig.tickMaxBufferedLogs() > 0)
 			{
-				clearBufferedLog();
+				if (hasBufferedLogPackets_ > g_kbeSrvConfig.tickMaxBufferedLogs())
+				{
+					clearBufferedLog();
+				}
+			}
+			else
+			{
+				if (hasBufferedLogPackets_ > 256)
+				{
+					clearBufferedLog();
+				}
 			}
 		}
 
@@ -574,6 +632,9 @@ void DebugHelper::pNetworkInterface(Network::NetworkInterface* networkInterface)
 //-------------------------------------------------------------------------------------
 void DebugHelper::onMessage(uint32 logType, const char * str, uint32 length)
 {
+	if (!canLog(logType))
+		return;
+
 #if !defined( _WIN32 )
 	if (g_shouldWriteToSyslog)
 	{
@@ -615,7 +676,7 @@ void DebugHelper::onMessage(uint32 logType, const char * str, uint32 length)
 
 	if (!isMainThread)
 	{
-		MemoryStream* pMemoryStream = memoryStreamPool_.createObject();
+		MemoryStream* pMemoryStream = memoryStreamPool_.createObject(OBJECTPOOL_POINT);
 
 		(*pMemoryStream) << getUserUID();
 		(*pMemoryStream) << logType;
@@ -661,7 +722,7 @@ void DebugHelper::onMessage(uint32 logType, const char * str, uint32 length)
 
 		int8 trace_packet = Network::g_trace_packet;
 		Network::g_trace_packet = 0;
-		Network::Bundle* pBundle = Network::Bundle::createPoolObject();
+		Network::Bundle* pBundle = Network::Bundle::createPoolObject(OBJECTPOOL_POINT);
 
 		pBundle->newMessage(LoggerInterface::writeLog);
 
@@ -701,8 +762,14 @@ void DebugHelper::unregisterLogger(Network::MessageID msgID, Network::Address* p
 {
 	loggerAddr_ = Network::Address::NONE;
 	canLogFile_ = true;
+	loseLoggerTime_ = timestamp();
 	ALERT_LOG_TO("", true);
 	printBufferedLogs();
+}
+
+//-------------------------------------------------------------------------------------
+void DebugHelper::DebugHelper::onNoLogger()
+{
 }
 
 //-------------------------------------------------------------------------------------
@@ -718,7 +785,7 @@ void DebugHelper::printBufferedLogs()
 
 #ifdef NO_USE_LOG4CXX
 #else
-	KBE_LOG4CXX_INFO(g_logger, std::string("The following logs sent to logger failed:\n"));
+	KBE_LOG4CXX_PRINT(g_logger, std::string("The following logs sent to logger failed:\n"));
 #endif
 
 	// 将子线程日志放入bufferedLogPackets_
@@ -728,7 +795,7 @@ void DebugHelper::printBufferedLogs()
 		MemoryStream* pMemoryStream = childThreadBufferedLogPackets_.front();
 		childThreadBufferedLogPackets_.pop();
 
-		Network::Bundle* pBundle = Network::Bundle::createPoolObject();
+		Network::Bundle* pBundle = Network::Bundle::createPoolObject(OBJECTPOOL_POINT);
 		bufferedLogPackets_.push(pBundle);
 
 		pBundle->newMessage(LoggerInterface::writeLog);
@@ -865,7 +932,7 @@ void DebugHelper::print_msg(const std::string& s)
 #ifdef NO_USE_LOG4CXX
 #else
 	if(canLogFile_)
-		KBE_LOG4CXX_INFO(g_logger, s);
+		KBE_LOG4CXX_PRINT(g_logger, s);
 #endif
 
 	onMessage(KBELOG_PRINT, s.c_str(), (uint32)s.size());
@@ -1063,7 +1130,7 @@ void DebugHelper::set_warningcolor()
 }
 
 //-------------------------------------------------------------------------------------
-#ifdef unix
+#if KBE_PLATFORM == PLATFORM_UNIX
 #define MAX_DEPTH 50
 #include <execinfo.h>
 #include <cxxabi.h>

@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 #if defined(DEFINE_IN_INTERFACE)
 	#undef KBE_CLIENT_INTERFACE_H
@@ -149,6 +131,32 @@ NETWORK_INTERFACE_DECLARE_BEGIN(ClientInterface)
 	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_p,						NETWORK_VARIABLE_MESSAGE)
 	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_r,						NETWORK_VARIABLE_MESSAGE)
 
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_ypr_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_yp_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_yr_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_pr_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_y_optimized,					NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_p_optimized,					NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_r_optimized,					NETWORK_VARIABLE_MESSAGE)
+
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_ypr_optimized,			NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_yp_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_yr_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_pr_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_y_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_p_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xz_r_optimized,				NETWORK_VARIABLE_MESSAGE)
+
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_ypr_optimized,			NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_yp_optimized,			NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_yr_optimized,			NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_pr_optimized,			NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_y_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_p_optimized,				NETWORK_VARIABLE_MESSAGE)
+	CLIENT_MESSAGE_DECLARE_STREAM(onUpdateData_xyz_r_optimized,				NETWORK_VARIABLE_MESSAGE)
+
 	// download stream开始了 
 	CLIENT_MESSAGE_DECLARE_ARGS3(onStreamDataStarted,						NETWORK_VARIABLE_MESSAGE,
 								int16,										id,
@@ -170,6 +178,9 @@ NETWORK_INTERFACE_DECLARE_BEGIN(ClientInterface)
 
 	// 错误码描述导出
 	CLIENT_MESSAGE_DECLARE_STREAM(onImportServerErrorsDescr,				NETWORK_VARIABLE_MESSAGE)
+
+	// 接收导入sdk消息
+	CLIENT_MESSAGE_DECLARE_STREAM(onImportClientSDK,						NETWORK_VARIABLE_MESSAGE)
 
 	// 服务端初始化spacedata
 	CLIENT_MESSAGE_DECLARE_STREAM(initSpaceData,							NETWORK_VARIABLE_MESSAGE)

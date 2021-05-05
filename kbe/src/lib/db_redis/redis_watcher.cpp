@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 #include "redis_watcher.h"
 #include "common.h"
@@ -940,7 +922,7 @@ void RedisWatcher::initializeWatcher()
 	WATCH_OBJECT("db_querys/PSYNC", &KBEngine::watcher_PSYNC);
 	WATCH_OBJECT("db_querys/SAVE", &KBEngine::watcher_SAVE);
 	WATCH_OBJECT("db_querys/SHUTDOWN", &KBEngine::watcher_SHUTDOWN);
-	WATCH_OBJECT("db_querys/SELECT", &KBEngine::watcher_SLAVEOF);
+	WATCH_OBJECT("db_querys/SLAVEOF", &KBEngine::watcher_SLAVEOF);
 	WATCH_OBJECT("db_querys/SLOWLOG", &KBEngine::watcher_SLOWLOG);
 	WATCH_OBJECT("db_querys/SYNC", &KBEngine::watcher_SYNC);
 	WATCH_OBJECT("db_querys/TIME", &KBEngine::watcher_TIME);				

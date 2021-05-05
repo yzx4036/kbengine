@@ -1,25 +1,9 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 
 #include "common.h"
+#include "common/ssl.h"
+#include "network/http_utility.h"
 #include "network/channel.h"
 #include "network/bundle.h"
 #include "network/tcp_packet.h"
@@ -40,6 +24,21 @@ float g_channelExternalTimeout = 60.f;
 int8 g_channelExternalEncryptType = 0;
 
 uint32 g_SOMAXCONN = 5;
+
+// UDP²ÎÊý
+uint32						g_rudp_intWritePacketsQueueSize = 65535;
+uint32						g_rudp_intReadPacketsQueueSize = 65535;
+uint32						g_rudp_extWritePacketsQueueSize = 65535;
+uint32						g_rudp_extReadPacketsQueueSize = 65535;
+uint32						g_rudp_tickInterval = 10;
+uint32						g_rudp_minRTO = 10;
+uint32						g_rudp_missAcksResend = 1;
+uint32						g_rudp_mtu = 0;
+bool						g_rudp_congestionControl = false;
+bool						g_rudp_nodelay = true;
+
+const char*					UDP_HELLO = "62a559f3fa7748bc22f8e0766019d498";
+const char*					UDP_HELLO_ACK = "1432ad7c829170a76dd31982c3501eca";
 
 // network stats
 uint64						g_numPacketsSent = 0;
@@ -66,6 +65,10 @@ uint32						g_intReSendInterval = 10;
 uint32						g_intReSendRetries = 0;
 uint32						g_extReSendInterval = 10;
 uint32						g_extReSendRetries = 3;
+
+// Certificate file required for HTTPS/WSS/SSL communication
+std::string					g_sslCertificate = "";
+std::string					g_sslPrivateKey = "";
 
 bool initializeWatcher()
 {
@@ -96,8 +99,16 @@ void destroyObjPool()
 	UDPPacketReceiver::destroyObjPool();
 }
 
+bool initialize()
+{
+	return KB_SSL::initialize() && Http::initialize();
+}
+
 void finalise(void)
 {
+	Http::finalise();
+	KB_SSL::finalise();
+
 #ifdef ENABLE_WATCHERS
 	WatcherPaths::finalise();
 #endif
@@ -106,6 +117,60 @@ void finalise(void)
 	
 	Network::destroyObjPool();
 }
+
+#if KBE_PLATFORM != PLATFORM_WIN32	
+#include <sys/poll.h>
+bool kbe_poll(int fd)
+{
+	int32 timeout = 100000;
+	int maxi = 0;
+	int icount = 1;
+	struct pollfd clientfds[1024];
+
+	clientfds[0].fd = fd;
+	clientfds[0].events = POLLIN;
+
+	for (int i = 1; i < 1024; i++)
+		clientfds[i].fd = -1;
+
+	while (1)
+	{
+		int nready = poll(clientfds, maxi + 1, timeout / 1000);
+
+		if (nready == -1)
+		{
+			return false;
+		}
+		else if (nready == 0)
+		{
+			if (icount > 5)
+				return false;
+
+			icount++;
+			continue;
+		}
+		else if (clientfds[0].revents & POLLIN)
+		{
+			return true;
+		}
+	}
+}
+#else
+bool kbe_poll(int fd)
+{
+	fd_set	frds;
+	struct timeval tv = { 0, 1000000 }; // 1s
+
+	FD_ZERO(&frds);
+	FD_SET(fd, &frds);
+
+	int selgot = select(fd + 1, &frds, NULL, NULL, &tv);
+	if (selgot <= 0)
+		return false;
+	else
+		return true;
+}
+#endif
 
 //-------------------------------------------------------------------------------------
 }

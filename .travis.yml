@@ -5,9 +5,12 @@ compiler:
 branches:
   only:
   - master
+  - 1.x
 #  - stable
 before_install:
    - sudo apt-get update
+   - sudo apt-get install libssl-dev
+   - sudo apt-get install libmysqlclient-dev
 notifications:
   recipients:
     - kbesrv@gmail.com

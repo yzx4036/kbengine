@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 
 #if defined(DEFINE_IN_INTERFACE)
@@ -95,6 +77,14 @@ NETWORK_INTERFACE_DECLARE_BEGIN(MachineInterface)
 									int32,							uid, 
 									std::string,					username,
 									uint16,							finderRecvPort)
+
+	MACHINE_MESSAGE_DECLARE_ARGS6(queryComponentID,					NETWORK_VARIABLE_MESSAGE,
+									COMPONENT_TYPE,					componentType,
+									COMPONENT_ID,					componentID,
+									int32,							uid,
+									uint16,							finderRecvPort,
+									int,							macMD5,
+									int32,							pid)
 	// 某app主动请求look。
 	MACHINE_MESSAGE_DECLARE_ARGS0(lookApp,							NETWORK_FIXED_MESSAGE)
 
@@ -109,6 +99,9 @@ NETWORK_INTERFACE_DECLARE_BEGIN(MachineInterface)
 
 	// 关闭服务器
 	MACHINE_MESSAGE_DECLARE_STREAM(killserver,						NETWORK_VARIABLE_MESSAGE)
+
+	// 设置flags
+	MACHINE_MESSAGE_DECLARE_STREAM(setflags,						NETWORK_VARIABLE_MESSAGE)
 
 	// 请求强制杀死当前app
 	MACHINE_MESSAGE_DECLARE_STREAM(reqKillServer,					NETWORK_VARIABLE_MESSAGE)

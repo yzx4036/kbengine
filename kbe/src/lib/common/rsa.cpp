@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 #include "rsa.h"
 #include "common.h"
@@ -141,7 +123,27 @@ bool KBE_RSA::generateKey(const std::string& pubkeyname,
 	RSA* rsa = NULL;
     FILE *fp = NULL;
 
+#if OPENSSL_VERSION_NUMBER < 0x00908000L
 	if ((rsa = RSA_generate_key(keySize, e, NULL, NULL)) == NULL) 
+#else
+    BIGNUM *bne;
+
+    bne = BN_new();
+    if (bne && BN_set_word(bne, e) != 1)
+        rsa = RSA_new();
+
+    bool ret = rsa && RSA_generate_key_ex(rsa, keySize, bne, NULL) != 1;
+
+    if (!ret)
+    {
+        RSA_free(rsa);
+        rsa = NULL;
+    }
+
+    BN_free(bne);
+    
+    if(!ret)
+#endif
 	{
 		ERR_load_crypto_strings();
 		char err[1024];

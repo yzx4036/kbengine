@@ -1,22 +1,4 @@
-/*
-This source file is part of KBEngine
-For the latest info, see http://www.kbengine.org/
-
-Copyright (c) 2008-2017 KBEngine.
-
-KBEngine is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-KBEngine is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
- 
-You should have received a copy of the GNU Lesser General Public License
-along with KBEngine.  If not, see <http://www.gnu.org/licenses/>.
-*/
+// Copyright 2008-2018 Yolo Technologies, Inc. All Rights Reserved. https://www.comblockengine.com
 
 
 #ifndef CLIENT_OBJECT_BASE_H
@@ -41,7 +23,8 @@ namespace client{
 class Entity;
 }
 
-class EntityMailbox;
+class EntityCall;
+class EntityCallAbstract;
 
 namespace Network
 {
@@ -72,7 +55,7 @@ public:
 	*/
 	client::Entity* createEntity(const char* entityType, PyObject* params,
 		bool isInitializeScript = true, ENTITY_ID eid = 0, bool initProperty = true, 
-		EntityMailbox* base = NULL, EntityMailbox* cell = NULL);
+		EntityCall* base = NULL, EntityCall* cell = NULL);
 
 	PY_CALLBACKMGR& callbackMgr(){ return pyCallbackMgr_; }	
 
@@ -119,6 +102,8 @@ public:
 		ClientObjectBase* pClientObjectBase = static_cast<ClientObjectBase*>(self);
 		return PyLong_FromLong(pClientObjectBase->appID());	
 	}
+
+	static PyObject* __py_getPlayer(PyObject *self, void *args);
 	
 	static PyObject* __py_callback(PyObject* self, PyObject* args);
 	static PyObject* __py_cancelCallback(PyObject* self, PyObject* args);
@@ -136,9 +121,14 @@ public:
 	ENTITY_ID readEntityIDFromStream(MemoryStream& s);
 
 	/**
-		由mailbox来尝试获取一个channel的实例
+		由entityCall来尝试获取一个channel的实例
 	*/
-	virtual Network::Channel* findChannelByMailbox(EntityMailbox& mailbox);
+	virtual Network::Channel* findChannelByEntityCall(EntityCallAbstract& entityCall);
+
+	/**
+		通过entity的ID尝试寻找它的实例
+	*/
+	virtual PyObject* tryGetEntity(COMPONENT_ID componentID, ENTITY_ID entityID);
 
 	/** 网络接口
 		客户端与服务端第一次建立交互, 服务端返回
@@ -269,6 +259,38 @@ public:
 	*/
 	virtual void onUpdateData(Network::Channel* pChannel, MemoryStream& s);
 
+	/** 网络接口
+		优化的位置同步
+	*/
+	virtual void onUpdateData_ypr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_yp_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_yr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_pr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_y_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_p_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_r_optimized(Network::Channel* pChannel, MemoryStream& s);
+
+	virtual void onUpdateData_xz_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_ypr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_yp_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_yr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_pr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_y_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_p_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xz_r_optimized(Network::Channel* pChannel, MemoryStream& s);
+
+	virtual void onUpdateData_xyz_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_ypr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_yp_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_yr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_pr_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_y_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_p_optimized(Network::Channel* pChannel, MemoryStream& s);
+	virtual void onUpdateData_xyz_r_optimized(Network::Channel* pChannel, MemoryStream& s);
+
+	/** 网络接口
+		非优化高精度同步
+	*/
 	virtual void onUpdateData_ypr(Network::Channel* pChannel, MemoryStream& s);
 	virtual void onUpdateData_yp(Network::Channel* pChannel, MemoryStream& s);
 	virtual void onUpdateData_yr(Network::Channel* pChannel, MemoryStream& s);
@@ -296,7 +318,7 @@ public:
 	virtual void onUpdateData_xyz_r(Network::Channel* pChannel, MemoryStream& s);
 	
 	void _updateVolatileData(ENTITY_ID entityID, float x, float y, float z, float roll, 
-		float pitch, float yaw, int8 isOnGround);
+		float pitch, float yaw, int8 isOnGround, bool isOptimized);
 
 	/** 
 		更新玩家到服务端 
@@ -339,6 +361,11 @@ public:
 	virtual void onImportServerErrorsDescr(Network::Channel* pChannel, MemoryStream& s){}
 
 	/** 网络接口
+	接收导入sdk消息(通常是开发期使用，更新客户端sdk用)
+	*/
+	virtual void onImportClientSDK(Network::Channel* pChannel, MemoryStream& s) {}
+
+	/** 网络接口
 		重置账号密码请求返回
 	*/
 	virtual void onReqAccountResetPasswordCB(Network::Channel* pChannel, SERVER_ERROR_CODE failedcode){}
@@ -365,9 +392,9 @@ public:
 	ENTITY_ID getTargetID() const{ return targetID_; }
 	virtual void onTargetChanged(){}
 
-	ENTITY_ID getAoiEntityID(ENTITY_ID id);
-	ENTITY_ID getAoiEntityIDFromStream(MemoryStream& s);
-	ENTITY_ID getAoiEntityIDByAliasID(uint8 id);
+	ENTITY_ID getViewEntityID(ENTITY_ID id);
+	ENTITY_ID getViewEntityIDFromStream(MemoryStream& s);
+	ENTITY_ID getViewEntityIDByAliasID(uint8 id);
 
 	/** 
 		space相关操作接口
@@ -408,6 +435,11 @@ public:
 	*/
 	void onAppActiveTickCB(Network::Channel* pChannel);
 
+	/**
+		允许脚本assert底层
+	*/
+	static PyObject* __py_assert(PyObject* self, PyObject* args);
+
 protected:				
 	int32													appID_;
 
@@ -426,7 +458,8 @@ protected:
 	DBID													dbid_;
 
 	std::string												ip_;
-	uint16													port_;
+	uint16													tcp_port_;
+	uint16													udp_port_;
 
 	std::string												baseappIP_;
 	uint16													baseappPort_;
